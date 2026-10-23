@@ -1340,14 +1340,31 @@ function buildAdditionalModelRequestFields(
 		};
 	}
 
+	if (candidates.some((s) => s.includes("glm-5.3"))) {
+		const mapped = model.thinkingLevelMap?.[options.reasoning];
+		return {
+			reasoning_effort: typeof mapped === "string" ? mapped : ZAI_GLM_EFFORT[options.reasoning],
+		};
+	}
+
 	return undefined;
 }
 
-type OpenAIGptEffort = "low" | "medium" | "high" | "xhigh" | "max";
+type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 type OpenAIGptOssEffort = "low" | "medium" | "high";
 
 /** OpenAI GPT models (GPT-5.x, GPT-6) take a nested `reasoning.effort` and reject `minimal`. */
-const OPENAI_GPT_EFFORT: Record<ThinkingLevel, OpenAIGptEffort> = {
+const OPENAI_GPT_EFFORT: Record<ThinkingLevel, ReasoningEffort> = {
+	minimal: "low",
+	low: "low",
+	medium: "medium",
+	high: "high",
+	xhigh: "xhigh",
+	max: "max",
+};
+
+/** Bedrock GLM 5.3 uses flat `reasoning_effort` in `additionalModelRequestFields`. */
+const ZAI_GLM_EFFORT: Record<ThinkingLevel, ReasoningEffort> = {
 	minimal: "low",
 	low: "low",
 	medium: "medium",

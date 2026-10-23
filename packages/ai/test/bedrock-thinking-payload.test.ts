@@ -259,6 +259,51 @@ describe("Bedrock OpenAI reasoning payload", () => {
 	});
 });
 
+describe("Bedrock Z.AI GLM reasoning payload", () => {
+	it.each([
+		["minimal", "low"],
+		["low", "low"],
+		["medium", "medium"],
+		["high", "high"],
+		["xhigh", "xhigh"],
+		["max", "max"],
+	] as const)("sends reasoning=%s as reasoning_effort=%s for GLM-5.3", async (reasoning, effort) => {
+		for (const id of ["global.zai.glm-5.3", "us.zai.glm-5.3"] as const) {
+			const model = {
+				...getModel("amazon-bedrock", "global.openai.gpt-6-sol"),
+				id,
+				name: "GLM 5.3",
+			};
+			const payload = await capturePayload(model, { reasoning });
+
+			expect(payload.additionalModelRequestFields, id).toEqual({ reasoning_effort: effort });
+		}
+	});
+
+	it("uses the model thinkingLevelMap before the GLM-5.3 fallback", async () => {
+		const model = {
+			...getModel("amazon-bedrock", "global.openai.gpt-6-sol"),
+			id: "global.zai.glm-5.3",
+			name: "GLM 5.3",
+			thinkingLevelMap: { medium: "high" },
+		};
+		const payload = await capturePayload(model, { reasoning: "medium" });
+
+		expect(payload.additionalModelRequestFields).toEqual({ reasoning_effort: "high" });
+	});
+
+	it.each(["zai.glm-4.7", "unknown.model"] as const)("leaves %s reasoning serialization unchanged", async (id) => {
+		const model = {
+			...getModel("amazon-bedrock", "global.openai.gpt-6-sol"),
+			id,
+			name: id,
+		};
+		const payload = await capturePayload(model, { reasoning: "medium" });
+
+		expect(payload.additionalModelRequestFields).toBeUndefined();
+	});
+});
+
 describe.skipIf(!hasBedrockCredentials())("Bedrock Claude max tokens E2E", () => {
 	it(
 		"uses the model maxTokens cap instead of Bedrock's 4096-token default for adaptive Claude models",
